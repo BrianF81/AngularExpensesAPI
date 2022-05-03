@@ -97,6 +97,29 @@ namespace ExpensesAPI.Controllers
 
         }
 
+        [AcceptVerbs("GET")]
+        [HttpGet]
+        public IHttpActionResult GetEntryByID(int id)
+        {
+            try
+            {
+                using (var context = new AppDbContext())
+                {
+                    var Entry = context.Entries.FirstOrDefault(n => n.ID == id);
+                    if (Entry == null)
+                    {
+                        return NotFound();
+                    }
+
+                    return Ok(Entry);
+                }
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
         [AcceptVerbs("DELETE")]
         [HttpDelete]
         public IHttpActionResult DeleteEntry(int id, [FromBody] Entry entry)
