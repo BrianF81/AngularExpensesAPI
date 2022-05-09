@@ -10,7 +10,7 @@ using System.Web.Http.Cors;
 
 namespace ExpensesAPI.Controllers
 {
-    [EnableCors("*","*","*")]
+    [EnableCors("*", "*","*")]
     public class EntriesController : ApiController
     {
         [AcceptVerbs("GET")]
