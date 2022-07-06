@@ -23,7 +23,7 @@ namespace ExpensesAPI.Controllers
         [HttpPost]
         public IHttpActionResult Login([FromBody]User user)
         {
-            if (string.IsNullOrEmpty(user.UserName) || string.IsNullOrEmpty(user.Password))
+            if (string.IsNullOrEmpty(user.UserName) || string.IsNullOrEmpty(user.Password)) 
                 return BadRequest("Enter your username and password");
 
             try
