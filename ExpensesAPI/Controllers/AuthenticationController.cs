@@ -8,6 +8,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using System.Web.Http;
 using System.Web.Http.Cors;
@@ -22,9 +23,25 @@ namespace ExpensesAPI.Controllers
         [HttpPost]
         public IHttpActionResult Login([FromBody]User user)
         {
-            return null;
-        }
+            if (string.IsNullOrEmpty(user.UserName) || string.IsNullOrEmpty(user.Password))
+                return BadRequest("Enter your username and password");
 
+            try
+            {
+                using (var context = new AppDbContext())
+                {
+                    var exsists = context.Users.Any(n => n.UserName == user.UserName);
+                    if (exsists && ComparePasswords(user))
+                        return Ok(CreateToken(user));
+                    else
+                        return BadRequest("Invalid Username/Password");
+                }
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
 
         [Route("register")]
         [HttpPost]
@@ -38,6 +55,7 @@ namespace ExpensesAPI.Controllers
                     if (exists)
                         return BadRequest("User already exists");
 
+                    user.Password = HashPassword(user.Password);
                     context.Users.Add(user);
                     context.SaveChanges();
 
@@ -47,9 +65,46 @@ namespace ExpensesAPI.Controllers
             }
             catch (Exception ex)
             {
-
                 return BadRequest(ex.Message);
             }
+        }
+
+        private bool ComparePasswords(User user)
+        {
+            bool pwMatch = false;
+            using (var context = new AppDbContext())
+            {
+                var exsists = context.Users.Any(n => n.UserName == user.UserName);
+                if (exsists)
+                {
+                    string savedPasswordHash = context.Users.FirstOrDefault(u => u.UserName == user.UserName).Password;
+                    byte[] hashBytes = Convert.FromBase64String(savedPasswordHash);
+                    byte[] salt = new byte[16];
+                    Array.Copy(hashBytes, 0, salt, 0, 16);
+                    var pbkdf2 = new Rfc2898DeriveBytes(user.Password, salt, 100000);
+                    byte[] hash = pbkdf2.GetBytes(20);
+                    /* Compare the results */
+                    for (int i = 0; i < 20; i++)
+                        if (hashBytes[i + 16] != hash[i])
+                            pwMatch = false;
+                        else
+                            pwMatch = true;
+                }
+            }
+            return pwMatch;
+        }
+
+        private string HashPassword(string password)
+        {
+            byte[] salt;
+            new RNGCryptoServiceProvider().GetBytes(salt = new byte[16]);
+            var pbkdf2 = new Rfc2898DeriveBytes(password, salt, 100000);
+            byte[] hash = pbkdf2.GetBytes(20);
+            byte[] hashBytes = new byte[36];
+            Array.Copy(salt, 0, hashBytes, 0, 16);
+            Array.Copy(hash, 0, hashBytes, 16, 20);
+            string savedPasswordHash = Convert.ToBase64String(hashBytes);
+            return savedPasswordHash;
         }
 
         private JwtPackage CreateToken(User user)
