@@ -96,7 +96,7 @@ namespace ExpensesAPI.Controllers
 
         private string HashPassword(string password)
         {
-            byte[] salt;
+            byte[] salt; 
             new RNGCryptoServiceProvider().GetBytes(salt = new byte[16]);
             var pbkdf2 = new Rfc2898DeriveBytes(password, salt, 100000);
             byte[] hash = pbkdf2.GetBytes(20);
